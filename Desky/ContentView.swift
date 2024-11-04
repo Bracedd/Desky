@@ -65,7 +65,7 @@ struct ContentView: View {
     
     func authenticateWithSpotify() {
         isAuthenticating = true
-        print("🎵 Starting Spotify authentication...")
+        print(" Starting Spotify authentication...")
         
         let encodedScope = Constants.scope.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let encodedRedirectURI = Constants.redirectURI.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
