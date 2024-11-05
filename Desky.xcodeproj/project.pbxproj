@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		514B750B2CDA2B9B0009B9C0 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 514B750A2CDA2B9B0009B9C0 /* LoginView.swift */; };
+		514B750D2CDA2C390009B9C0 /* HEXExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 514B750C2CDA2C390009B9C0 /* HEXExtensions.swift */; };
 		5156B2E32CD936CF00007A02 /* DeskyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5156B2E22CD936CF00007A02 /* DeskyApp.swift */; };
 		5156B2E52CD936CF00007A02 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5156B2E42CD936CF00007A02 /* ContentView.swift */; };
 		5156B2E72CD936D000007A02 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5156B2E62CD936D000007A02 /* Assets.xcassets */; };
@@ -22,6 +24,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		514B750A2CDA2B9B0009B9C0 /* LoginView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		514B750C2CDA2C390009B9C0 /* HEXExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HEXExtensions.swift; sourceTree = "<group>"; };
 		5156B2DF2CD936CF00007A02 /* Desky.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Desky.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5156B2E22CD936CF00007A02 /* DeskyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskyApp.swift; sourceTree = "<group>"; };
 		5156B2E42CD936CF00007A02 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -73,10 +77,12 @@
 				5156B2E22CD936CF00007A02 /* DeskyApp.swift */,
 				5156B2FA2CD9393700007A02 /* HomeView.swift */,
 				5156B2E42CD936CF00007A02 /* ContentView.swift */,
+				514B750A2CDA2B9B0009B9C0 /* LoginView.swift */,
 				5156B3032CD9492B00007A02 /* SpotifyAuth.swift */,
 				5156B2EB2CD936D000007A02 /* Persistence.swift */,
 				5156B2F52CD9371900007A02 /* Constants.swift */,
 				5156B2FC2CD93A5400007A02 /* LoginStatus.swift */,
+				514B750C2CDA2C390009B9C0 /* HEXExtensions.swift */,
 				5156B2FE2CD93AFD00007A02 /* URLExtensions.swift */,
 				5156B2E62CD936D000007A02 /* Assets.xcassets */,
 				5156B2E82CD936D000007A02 /* Preview Content */,
@@ -176,7 +182,9 @@
 				5156B2FF2CD93AFD00007A02 /* URLExtensions.swift in Sources */,
 				5156B2E52CD936CF00007A02 /* ContentView.swift in Sources */,
 				5156B2EF2CD936D000007A02 /* Desky.xcdatamodeld in Sources */,
+				514B750B2CDA2B9B0009B9C0 /* LoginView.swift in Sources */,
 				5156B2E32CD936CF00007A02 /* DeskyApp.swift in Sources */,
+				514B750D2CDA2C390009B9C0 /* HEXExtensions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
