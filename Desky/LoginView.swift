@@ -8,89 +8,88 @@ struct LoginView: View {
     @State private var isAuthenticating = false
     
     var body: some View {
-        ZStack{
-            
-            Color(hex: "2b2b2b")
-                .ignoresSafeArea()
-            
-            VStack() {
-                if isAuthenticating {
-                    VStack(spacing: 15) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                        Text("Authenticating with Spotify...")
-                            .foregroundColor(.secondary)
+        GeometryReader { geometry in
+            ZStack {
+                Color(hex: "2b2b2b")
+                    .ignoresSafeArea()
+                
+                VStack {
+                    if isAuthenticating {
+                        VStack(spacing: geometry.size.height * 0.01) {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                            Text("Authenticating with Spotify...")
+                                .foregroundColor(.secondary)
+                                .font(.system(size: geometry.size.width * 0.05))
+                        }
                     }
-                }
-                
-                VStack(){
-                    Text("welcome to")
-                        .fontWeight(.bold)
-                        .font(.system(size: 45))
-                        .foregroundColor(.white)
                     
-                    Text("DESKY")
-                        .fontWeight(.heavy)
-                        .font(.system(size: 92))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color(hex: "b386da"), Color(hex: "433d91")],
-                                startPoint: .top,
-                                endPoint: .bottom
+                    Spacer()
+                    
+                    VStack(spacing: geometry.size.height * 0.01) {
+                        Text("welcome to")
+                            .fontWeight(.bold)
+                            .font(.system(size: geometry.size.width * 0.10))
+                            .foregroundColor(.white)
+                        
+                        Text("DESKY")
+                            .fontWeight(.heavy)
+                            .font(.system(size: geometry.size.width * 0.24))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color(hex: "b386da"), Color(hex: "433d91")],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
                             )
-                        )
-                    Text("the only accessory you need on your desk")
-                        .fontWeight(.bold)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(Color(hex: "b6b5b5"))
                         
-                }
-                
+                        Text("the only accessory you need on your desk")
+                            .fontWeight(.bold)
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(Color(hex: "b6b5b5"))
+                            .font(.system(size: geometry.size.width * 0.05))
+                    }
                     
-                Spacer()
-                
-                Button(action: authenticateWithSpotify) {
-                    HStack {
-                        
+                    Spacer(minLength: geometry.size.height * 0.1)
+                    
+                    Button(action: authenticateWithSpotify) {
                         Text("Login with Spotify")
                             .fontWeight(.bold)
+                            .font(.headline)
+                            .frame(maxWidth: geometry.size.width * 0.7)
+                            .padding(.vertical, geometry.size.height * 0.015)
+                            .background(Color(hex: "6b6b6b"))
+                            .foregroundColor(.white)
+                            .cornerRadius(20)
+                            .shadow(color: Color(hex: "000000").opacity(0.5), radius: 20, x: 0, y: 15)
                     }
-                    .font(.headline)
-                    .padding(.all, 5)
-                    .frame(minWidth: 250)
-                    .background(
-                        Color(hex: "6b6b6b")
-                    )
-                    .foregroundColor(.white)
-                    .cornerRadius(20)
-                    .shadow(color: Color(hex: "000000").opacity(0.5), radius: 20, x: 0 , y: 15)
+                    .disabled(isAuthenticating)
+                    .opacity(isAuthenticating ? 0.6 : 1)
+                    
+                    Spacer()
                 }
-                .disabled(isAuthenticating)
-                .opacity(isAuthenticating ? 0.6 : 1)
-            
-                Spacer()
-            }
-            .animation(.easeInOut, value: isAuthenticating)
-            .alert("Authentication Error",
-                isPresented: $showingError) {
+                .padding(.horizontal, geometry.size.width * 0.1)
+                .animation(.easeInOut, value: isAuthenticating)
+                .alert("Authentication Error",
+                       isPresented: $showingError) {
                     Button("OK", role: .cancel) {
                         isAuthenticating = false
                     }
                 } message: {
                     Text(errorMessage)
                 }
-            .onOpenURL { url in
-                spotifyAuth.handleURL(url)
-                isAuthenticating = false
-            }
-            .onChange(of: spotifyAuth.isAuthenticated) { newValue in
-                if newValue {
-                    loginStatus.isLoggedIn = true
-                    print("🔄 Updated LoginStatus to match SpotifyAuth")
+                .onOpenURL { url in
+                    spotifyAuth.handleURL(url)
+                    isAuthenticating = false
+                }
+                .onChange(of: spotifyAuth.isAuthenticated) { newValue in
+                    if newValue {
+                        loginStatus.isLoggedIn = true
+                        print("🔄 Updated LoginStatus to match SpotifyAuth")
+                    }
                 }
             }
         }
-        
     }
     
     func authenticateWithSpotify() {
@@ -132,13 +131,13 @@ struct LoginView_Previews: PreviewProvider {
         Group {
             LoginView()
                 .environmentObject(LoginStatus())
-                .previewDevice("iPhone 15")
+                .previewDevice("iPhone 14")
                 .previewDisplayName("Light Mode")
             
             LoginView()
                 .environmentObject(LoginStatus())
                 .preferredColorScheme(.dark)
-                .previewDevice("iPhone 15")
+                .previewDevice("iPhone 14")
                 .previewDisplayName("Dark Mode")
         }
     }
