@@ -1,4 +1,5 @@
 import SwiftUI
+import SpotifyiOS
 
 struct LoginView: View {
     @StateObject private var spotifyAuth = SpotifyAuth()
@@ -103,22 +104,22 @@ struct LoginView: View {
             "?client_id=\(Constants.spotifyClientID)" +
             "&response_type=code" +
             "&redirect_uri=\(encodedRedirectURI)" +
-            "&scope=\(encodedScope)" +
-            "&show_dialog=true"
+            "&scope=\(encodedScope)"
         
-        guard let url = URL(string: authURLString) else {
+        guard let authURL = URL(string: authURLString) else {
             showingError = true
-            errorMessage = "Failed to create authentication URL"
+            errorMessage = "Could not create authorization URL"
             isAuthenticating = false
             return
         }
         
-        UIApplication.shared.open(url) { success in
+        // Open the authorization URL
+        UIApplication.shared.open(authURL) { success in
             if !success {
                 DispatchQueue.main.async {
-                    showingError = true
-                    errorMessage = "Failed to open Spotify authentication"
-                    isAuthenticating = false
+                    self.showingError = true
+                    self.errorMessage = "Could not open Spotify authorization page"
+                    self.isAuthenticating = false
                 }
             }
         }

@@ -8,10 +8,10 @@ struct ContentView: View {
             Group {
                 if loginStatus.isLoggedIn {
                     HomeView()
-                        .transition(.slide)
+                        .transition(.opacity)
                 } else {
                     LoginView()
-                        .transition(.slide)
+                        .transition(.opacity)
                 }
             }
         }
