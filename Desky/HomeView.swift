@@ -6,6 +6,7 @@ struct HomeView: View {
     @State private var showSpotifyAlert = false
     @State private var showPlaybackAlert = false
     @State private var isConnecting = false
+    @State private var showConnectionError = false
     
     var body: some View {
         VStack(spacing: 20) {
@@ -19,6 +20,39 @@ struct HomeView: View {
                         .font(.headline)
                         .foregroundColor(.secondary)
                     
+                    // Album Artwork
+                    if let imageURL = currentTrack.imageURL {
+                        AsyncImage(url: imageURL) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .frame(width: 200, height: 200)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 200, height: 200)
+                                    .cornerRadius(8)
+                            case .failure(_):
+                                Image(systemName: "music.note")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 100, height: 100)
+                                    .foregroundColor(.gray)
+                                    .frame(width: 200, height: 200)
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                    } else {
+                        Image(systemName: "music.note")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 100, height: 100)
+                            .foregroundColor(.gray)
+                            .frame(width: 200, height: 200)
+                    }
+                    
                     Text(currentTrack.title)
                         .font(.title2)
                         .fontWeight(.bold)
@@ -28,65 +62,53 @@ struct HomeView: View {
                         .font(.title3)
                         .foregroundColor(.secondary)
                     
+                    // Show playing status
                     HStack {
-                        Image(systemName: currentTrack.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 44))
+                        Image(systemName: currentTrack.isPlaying ? "music.note" : "pause.circle")
+                            .font(.system(size: 24))
                             .foregroundColor(.green)
+                        Text(currentTrack.isPlaying ? "Playing" : "Paused")
+                            .foregroundColor(.secondary)
                     }
+                    .padding(.top, 10)
                 }
                 .padding()
                 .background(Color(.systemBackground))
                 .cornerRadius(15)
                 .shadow(radius: 5)
+                
+                // Manual refresh button
+                Button(action: {
+                    spotifyAuth.requestPlayerState()
+                }) {
+                    Image(systemName: "arrow.clockwise.circle")
+                        .font(.system(size: 24))
+                        .foregroundColor(.green)
+                }
+                .padding(.top)
             } else {
                 VStack(spacing: 10) {
                     if !spotifyAuth.isConnected {
-                        Button(action: {
-                            if let spotifyURL = URL(string: "spotify:"), UIApplication.shared.canOpenURL(spotifyURL) {
-                                UIApplication.shared.open(spotifyURL) { success in
-                                    if success {
-                                        showPlaybackAlert = true
-                                    }
-                                }
-                            } else {
-                                showSpotifyAlert = true
-                            }
-                        }) {
-                            Text("Connect to Spotify")
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(Color.green)
-                                .cornerRadius(8)
-                        }
-                    } else if spotifyAuth.currentTrack == nil {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                        Text("Connecting to Spotify...")
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    if showPlaybackAlert {
-                        VStack(spacing: 8) {
-                            Text("Please follow these steps:")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Text("1. Open Spotify")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("2. Start playing any song")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("3. Come back and tap 'Connect'")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                        VStack(spacing: 15) {
+                            Text("Connect with Spotify")
+                                .font(.headline)
                             
                             Button(action: {
                                 isConnecting = true
-                                spotifyAuth.setupAppRemote()
-                                // Reset connecting state after a timeout
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
-                                    isConnecting = false
+                                // First ensure Spotify is running and then connect
+                                if let spotifyURL = URL(string: "spotify:") {
+                                    UIApplication.shared.open(spotifyURL) { success in
+                                        if success {
+                                            // Give Spotify time to fully launch
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                                spotifyAuth.setupAppRemote()
+                                            }
+                                        }
+                                        // Reset connecting state after a timeout
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                                            isConnecting = false
+                                        }
+                                    }
                                 }
                             }) {
                                 HStack {
@@ -103,7 +125,6 @@ struct HomeView: View {
                                 .cornerRadius(8)
                             }
                             .disabled(isConnecting)
-                            .opacity(isConnecting ? 0.6 : 1)
                         }
                         .padding()
                         .background(Color(.systemBackground))
@@ -117,19 +138,14 @@ struct HomeView: View {
         .onDisappear {
             spotifyAuth.disconnect()
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowSpotifyPlaybackAlert"))) { _ in
-            showPlaybackAlert = true
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowSpotifyConnectionError"))) { _ in
+            showConnectionError = true
         }
-        .alert(isPresented: $showSpotifyAlert) {
+        .alert(isPresented: $showConnectionError) {
             Alert(
-                title: Text("Spotify Required"),
-                message: Text("Please install Spotify from the App Store and start playing music to use this feature."),
-                primaryButton: .default(Text("Open App Store")) {
-                    if let url = URL(string: "itms-apps://apple.com/app/spotify") {
-                        UIApplication.shared.open(url)
-                    }
-                },
-                secondaryButton: .cancel()
+                title: Text("Connection Failed"),
+                message: Text("Please make sure Spotify is open and playing music, then try connecting again."),
+                dismissButton: .default(Text("OK"))
             )
         }
     }
