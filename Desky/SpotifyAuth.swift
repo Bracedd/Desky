@@ -31,6 +31,22 @@ class SpotifyAuth: NSObject, ObservableObject {
         }
     }
     
+    private var tokenExpirationDate: Date? {
+        didSet {
+            if let date = tokenExpirationDate {
+                UserDefaults.standard.set(date, forKey: "spotifyTokenExpiration")
+            }
+        }
+    }
+    
+    private var refreshToken: String? {
+        didSet {
+            if let token = refreshToken {
+                UserDefaults.standard.set(token, forKey: "spotifyRefreshToken")
+            }
+        }
+    }
+    
     private lazy var appRemote: SpotifyiOS.SPTAppRemote = {
         let configuration = SpotifyiOS.SPTConfiguration(clientID: Constants.spotifyClientID, redirectURL: URL(string: Constants.redirectURI)!)
         let appRemote = SpotifyiOS.SPTAppRemote(configuration: configuration, logLevel: .debug)
@@ -41,12 +57,20 @@ class SpotifyAuth: NSObject, ObservableObject {
     private var isReconnecting = false
     private var reconnectionTimer: Timer?
     
+    private var connectionRetryCount = 0
+    private let maxConnectionRetries = 3
+    private var connectionRetryTimer: Timer?
+    
     override init() {
         isAuthenticated = UserDefaults.standard.bool(forKey: "isAuthenticated")
         isConnected = UserDefaults.standard.bool(forKey: "spotifyConnected")
         accessToken = UserDefaults.standard.string(forKey: "spotifyAccessToken")
+        refreshToken = UserDefaults.standard.string(forKey: "spotifyRefreshToken")
+        tokenExpirationDate = UserDefaults.standard.object(forKey: "spotifyTokenExpiration") as? Date
         
         super.init()
+        
+        checkAndRefreshTokenIfNeeded()
         
         NotificationCenter.default.addObserver(
             self,
@@ -75,15 +99,20 @@ class SpotifyAuth: NSObject, ObservableObject {
     }
     
     @objc private func handleAppDidBecomeActive() {
-        // Cancel any existing timer
+        // Cancel any existing timers
         reconnectionTimer?.invalidate()
+        connectionRetryTimer?.invalidate()
         
-        if isAuthenticated && appRemote.isConnected {
+        // Check token first
+        checkAndRefreshTokenIfNeeded()
+        
+        if isAuthenticated && !appRemote.isConnected {
             // Add a small delay to ensure proper state restoration
             isReconnecting = true
             reconnectionTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
                 print("🔄 Restoring connection after app switch...")
-                self?.appRemote.connect()
+                self?.connectionRetryCount = 0
+                self?.attemptConnection()
                 self?.isReconnecting = false
             }
         }
@@ -157,6 +186,17 @@ class SpotifyAuth: NSObject, ObservableObject {
                         DispatchQueue.main.async {
                             self?.accessToken = accessToken
                             self?.isAuthenticated = true
+                            
+                            // Store refresh token
+                            if let refreshToken = json["refresh_token"] as? String {
+                                self?.refreshToken = refreshToken
+                            }
+                            
+                            // Store expiration date
+                            if let expiresIn = json["expires_in"] as? Double {
+                                self?.tokenExpirationDate = Date().addingTimeInterval(expiresIn)
+                            }
+                            
                             print("🎉 Authentication status updated to true")
                         }
                     } else if let error = json["error"] as? String {
@@ -199,7 +239,7 @@ class SpotifyAuth: NSObject, ObservableObject {
         self.appRemote = newAppRemote
         
         // Try to connect using connect() instead of authorizeAndPlayURI
-        print("🔄 Attempting to connect to Spotify...")
+        print(" Attempting to connect to Spotify...")
         appRemote.connect()
     }
     
@@ -245,6 +285,107 @@ class SpotifyAuth: NSObject, ObservableObject {
     
     deinit {
         reconnectionTimer?.invalidate()
+        connectionRetryTimer?.invalidate()
+    }
+    
+    private func checkAndRefreshTokenIfNeeded() {
+        guard let expirationDate = tokenExpirationDate else { return }
+        
+        // Refresh if token expires in less than 5 minutes or has expired
+        if Date().addingTimeInterval(5 * 60) > expirationDate {
+            refreshAccessToken()
+        }
+    }
+    
+    private func refreshAccessToken() {
+        guard let refreshToken = refreshToken else { return }
+        
+        print("🔄 Refreshing access token...")
+        let tokenURL = URL(string: "https://accounts.spotify.com/api/token")!
+        var request = URLRequest(url: tokenURL)
+        request.httpMethod = "POST"
+        
+        let body = "grant_type=refresh_token" +
+            "&refresh_token=\(refreshToken)" +
+            "&client_id=\(Constants.spotifyClientID)" +
+            "&client_secret=\(Constants.spotifyClientSecret)"
+        
+        request.httpBody = body.data(using: .utf8)
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            if let error = error {
+                print("❌ Token refresh error: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let data = data else { return }
+            
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    if let newToken = json["access_token"] as? String {
+                        print("✅ New access token received")
+                        DispatchQueue.main.async {
+                            self?.accessToken = newToken
+                            if let expiresIn = json["expires_in"] as? Double {
+                                self?.tokenExpirationDate = Date().addingTimeInterval(expiresIn)
+                            }
+                            // Reconnect with new token
+                            self?.setupAppRemote()
+                        }
+                    }
+                }
+            } catch {
+                print("❌ JSON parsing error during token refresh: \(error)")
+            }
+        }.resume()
+    }
+    
+    private func attemptConnection() {
+        guard connectionRetryCount < maxConnectionRetries else {
+            print("❌ Max connection retries reached")
+            DispatchQueue.main.async { [weak self] in
+                self?.isConnected = false
+                NotificationCenter.default.post(name: NSNotification.Name("ShowSpotifyConnectionError"), object: nil)
+            }
+            return
+        }
+        
+        connectionRetryCount += 1
+        print("🔄 Connection attempt \(connectionRetryCount)/\(maxConnectionRetries)")
+        
+        setupAppRemote()
+        
+        // Set up retry timer
+        connectionRetryTimer?.invalidate()
+        connectionRetryTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
+            if !(self?.appRemote.isConnected ?? false) {
+                self?.attemptConnection()
+            }
+        }
+    }
+    
+    func logout() {
+        // Disconnect from Spotify
+        if appRemote.isConnected {
+            appRemote.disconnect()
+        }
+        
+        // Clear all stored tokens and states
+        accessToken = nil
+        refreshToken = nil
+        tokenExpirationDate = nil
+        isAuthenticated = false
+        isConnected = false
+        
+        // Clear UserDefaults
+        UserDefaults.standard.removeObject(forKey: "spotifyAccessToken")
+        UserDefaults.standard.removeObject(forKey: "spotifyRefreshToken")
+        UserDefaults.standard.removeObject(forKey: "spotifyTokenExpiration")
+        UserDefaults.standard.removeObject(forKey: "isAuthenticated")
+        UserDefaults.standard.removeObject(forKey: "spotifyConnected")
+        UserDefaults.standard.removeObject(forKey: "lastSpotifyConnection")
+        UserDefaults.standard.synchronize()
     }
 }
 
@@ -258,17 +399,14 @@ extension SpotifyAuth: SPTAppRemoteDelegate {
             
             // Only try reconnecting if we're not already in the process
             if !isReconnecting {
-                // Try one more time with authorizeAndPlayURI
+                // Try alternate connection method
                 print("🔄 Trying alternate connection method...")
                 appRemote.authorizeAndPlayURI("")
                 
-                // If that fails too, show error
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+                // Set up failure timer
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
                     if !(self?.appRemote.isConnected ?? false) {
-                        DispatchQueue.main.async {
-                            self?.isConnected = false
-                            NotificationCenter.default.post(name: NSNotification.Name("ShowSpotifyConnectionError"), object: nil)
-                        }
+                        self?.attemptConnection()
                     }
                 }
             }
@@ -277,6 +415,10 @@ extension SpotifyAuth: SPTAppRemoteDelegate {
     
     func appRemoteDidEstablishConnection(_ appRemote: SpotifyiOS.SPTAppRemote) {
         print("✅ Connected to Spotify")
+        
+        // Reset connection retry count on successful connection
+        connectionRetryCount = 0
+        connectionRetryTimer?.invalidate()
         
         DispatchQueue.main.async { [weak self] in
             self?.isConnected = true
@@ -319,8 +461,10 @@ extension SpotifyAuth: SPTAppRemotePlayerStateDelegate {
         // Create image URL from identifier with better formatting
         let imageURL: URL? = {
             let identifier = playerState.track.imageIdentifier
-            // Remove any potential spotify: prefix
-            let cleanIdentifier = identifier.replacingOccurrences(of: "spotify:", with: "")
+            // Remove any potential spotify: prefix and image: prefix
+            let cleanIdentifier = identifier
+                .replacingOccurrences(of: "spotify:", with: "")
+                .replacingOccurrences(of: "image:", with: "")
             return URL(string: "https://i.scdn.co/image/\(cleanIdentifier)")
         }()
         
