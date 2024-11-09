@@ -52,7 +52,7 @@ struct HomeView: View {
                             .aspectRatio(contentMode: .fill)
                             .frame(width: geometry.size.height * 0.7, height: geometry.size.height * 0.7)
                             .clipShape(RoundedRectangle(cornerRadius: 20))
-                            .shadow(color: .black, radius: 25)
+                            .shadow(color: .black, radius: 50)
                             .padding(.bottom, geometry.size.height * 0.1)
                     case .failure(_):
                         Image(systemName: "music.note")
@@ -81,7 +81,7 @@ struct HomeView: View {
                 Spacer()
                 
                 
-                Text( track.title)
+                Text(track.title)
                     .font(.title)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
@@ -162,7 +162,7 @@ struct HomeView: View {
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack {
-                    Text("Connect With Spotify To Get Started!")
+                    Text("Connect With Spotify")
                         .foregroundColor(.white)
                         .fontWeight(.heavy)
                         .padding(.bottom, 25)
@@ -174,7 +174,7 @@ struct HomeView: View {
                         .foregroundColor(.white)
                         .padding()
                         .background(Color.blue)
-                        .cornerRadius(20)
+                        .cornerRadius(25)
                 }
             }
         }
