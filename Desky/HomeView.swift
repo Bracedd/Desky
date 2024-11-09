@@ -7,7 +7,8 @@ struct HomeView: View {
     @State private var showConnectionError = false
     @State private var isConnecting = false
     @State private var progress: Double = 0.0
-
+    @State private var isTrackChanged = false
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -15,6 +16,14 @@ struct HomeView: View {
                 
                 if let currentTrack = spotifyAuth.currentTrack {
                     playerView(for: currentTrack, in: geometry)
+                        .opacity(isTrackChanged ? 0.5 : 1.0) // Adjust opacity here
+                        .animation(.easeInOut(duration: 0.5), value: isTrackChanged)
+                        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TrackDidChange"))) { _ in
+                            isTrackChanged.toggle() // Toggle to trigger animation
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                isTrackChanged.toggle() // Reset after animation completes
+                            }
+                        }
                 } else {
                     connectButton
                 }
@@ -26,18 +35,11 @@ struct HomeView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowSpotifyConnectionError"))) { _ in
             showConnectionError = true
         }
-        .alert(isPresented: $showConnectionError) {
-            Alert(
-                title: Text("Connection Failed"),
-                message: Text("Please make sure Spotify is open and playing music, then try connecting again."),
-                dismissButton: .default(Text("OK"))
-            )
-        }
     }
     
     private func playerView(for track: (title: String, artist: String, isPlaying: Bool, imageURL: URL?), in geometry: GeometryProxy) -> some View {
         HStack(spacing: 20) {
-            // Left side: Album Artwork
+            // Left side: Album Artwork with animation on opacity
             if let imageURL = track.imageURL {
                 AsyncImage(url: imageURL) { phase in
                     switch phase {
@@ -50,7 +52,8 @@ struct HomeView: View {
                             .aspectRatio(contentMode: .fill)
                             .frame(width: geometry.size.height * 0.7, height: geometry.size.height * 0.7)
                             .clipShape(RoundedRectangle(cornerRadius: 20))
-                            .shadow(radius: 10)
+                            .shadow(color: .black, radius: 25)
+                            .padding(.bottom, geometry.size.height * 0.1)
                     case .failure(_):
                         Image(systemName: "music.note")
                             .resizable()
@@ -61,23 +64,31 @@ struct HomeView: View {
                         EmptyView()
                     }
                 }
+                .opacity(isTrackChanged ? 0.5 : 1.0) // Add opacity animation here as well
+                .animation(.easeInOut(duration: 0.5), value: isTrackChanged)
             } else {
                 Image(systemName: "music.note")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: geometry.size.height * 0.5, height: geometry.size.height * 0.5)
                     .foregroundColor(.white)
+                    .opacity(isTrackChanged ? 0.5 : 1.0)
+                    .animation(.easeInOut(duration: 0.5), value: isTrackChanged)
             }
             
             // Right side: Track Info and Progress
             VStack(alignment: .leading, spacing: 10) {
                 Spacer()
                 
-                Text(track.title)
+                
+                Text( track.title)
                     .font(.title)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                     .lineLimit(1)
+                
+
+                
                 
                 Text(track.artist)
                     .font(.title3)
@@ -146,12 +157,11 @@ struct HomeView: View {
                 isConnecting = false
             }
         }) {
-            ZStack{
+            ZStack {
                 Color(hex: "2b2b2b")
-                    .ignoresSafeArea()
+                    .edgesIgnoringSafeArea(.all)
                 
-                VStack{
-                    
+                VStack {
                     Text("Connect With Spotify To Get Started!")
                         .foregroundColor(.white)
                         .fontWeight(.heavy)
@@ -165,15 +175,10 @@ struct HomeView: View {
                         .padding()
                         .background(Color.blue)
                         .cornerRadius(20)
-                        
-
                 }
             }
-            
-            
-            
         }
-        .padding(.horizontal)
+
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .disabled(isConnecting)
     }
@@ -203,6 +208,8 @@ struct HomeView: View {
     }
 }
 
+
+
 struct HomeView_Previews: PreviewProvider {
     static var previews: some View {
         HomeView()
@@ -210,3 +217,4 @@ struct HomeView_Previews: PreviewProvider {
             .previewInterfaceOrientation(.landscapeLeft)
     }
 }
+    

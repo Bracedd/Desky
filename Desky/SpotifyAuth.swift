@@ -3,6 +3,7 @@ import SpotifyiOS
 import Combine
 
 class SpotifyAuth: NSObject, ObservableObject {
+    
     @Published var isAuthenticated: Bool {
         didSet {
             UserDefaults.standard.set(isAuthenticated, forKey: "isAuthenticated")
@@ -350,7 +351,7 @@ class SpotifyAuth: NSObject, ObservableObject {
             }
             return
         }
-        
+         
         connectionRetryCount += 1
         print("🔄 Connection attempt \(connectionRetryCount)/\(maxConnectionRetries)")
         
@@ -453,6 +454,8 @@ extension SpotifyAuth: SPTAppRemotePlayerStateDelegate {
     func playerStateDidChange(_ playerState: SPTAppRemotePlayerState) {
         print("🎵 Player state changed automatically")
         updatePlayerState(playerState)
+        
+        
     }
     
     private func updatePlayerState(_ playerState: SPTAppRemotePlayerState) {
@@ -470,6 +473,7 @@ extension SpotifyAuth: SPTAppRemotePlayerStateDelegate {
         
         if let url = imageURL {
             print("🖼️ Image URL created: \(url)")
+            NotificationCenter.default.post(name: NSNotification.Name("TrackDidChange"), object: nil)
         } else {
             print("⚠️ Could not create image URL from identifier: \(playerState.track.imageIdentifier)")
         }
@@ -482,6 +486,7 @@ extension SpotifyAuth: SPTAppRemotePlayerStateDelegate {
                 imageURL: imageURL
             )
             print("✅ Updated current track: \(playerState.track.name)")
+            
         }
     }
 } 
