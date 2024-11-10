@@ -53,7 +53,7 @@ struct HomeView: View {
                             .frame(width: geometry.size.height * 0.7, height: geometry.size.height * 0.7)
                             .clipShape(RoundedRectangle(cornerRadius: 20))
                             .shadow(color: .black, radius: 50)
-                            .padding(.bottom, geometry.size.height * 0.1)
+                            .padding(.bottom, geometry.size.height * 0.015      )
                     case .failure(_):
                         Image(systemName: "music.note")
                             .resizable()
@@ -165,17 +165,38 @@ struct HomeView: View {
                 VStack {
                     Text("Connect With Spotify")
                         .foregroundColor(.white)
-                        .fontWeight(.heavy)
+                        .fontWeight(.bold)
                         .padding(.top, 15)
-                        .font(.system(size: 16))
+                        .font(.system(size: 28))
+                    
+                    VStack{
+                        Text("Steps to connect")
+                            .fontWeight(.bold)
+                        Text("1. Make Sure Spotify is downloaded and signed in")
+                            .fontWeight(.bold)
+                        Text("2. Click connect and let it authorize")
+                            .fontWeight(.bold)
+                        Text("3. You're ready to go!")
+                            .fontWeight(.bold)
+                    }
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(hex: "B6B5B5"))
+                    .multilineTextAlignment(.center)
+                    .padding(.vertical, 15)
+                    
+                    Text("*Require Spotify Premium For Playback Controls")
+                        .fontWeight(.bold)
+                        .foregroundColor(Color(hex: "B386DA"))
+                    
                     
                     Text(isConnecting ? "Connecting..." : "Connect to Spotify")
                         .font(.title3)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(Color.white)
                         .padding()
-                        .background(Color.blue)
+                        .background(Color(hex: "6B6B6B"))
                         .cornerRadius(25)
+                        
                 }
             }
         }

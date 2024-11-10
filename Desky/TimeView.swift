@@ -8,17 +8,24 @@
 import SwiftUI
 
 struct TimeView: View {
+    @State private var currentTime = Date()
+    
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                Color.black.edgesIgnoringSafeArea(.all)
-                
-                Text("Time View")
-                    .font(.largeTitle)
-                    .foregroundColor(.white)
+        Text(formatDate(currentTime))
+            .font(.system(size: 92))
+            .fontWeight(.heavy)
+            .onAppear {
+                // Update the time every second
+                Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+                    currentTime = Date()
+                }
             }
-            .frame(width: geometry.size.width, height: geometry.size.height)
-        }
-        .ignoresSafeArea()
+    }
+    
+    // Format the date into a time string
+    func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .medium
+        return formatter.string(from: date)
     }
 }

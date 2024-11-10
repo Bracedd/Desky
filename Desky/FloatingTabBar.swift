@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FloatingTabBar: View {
     @Binding var selectedTab: Tab
+    @Binding var isVisible: Bool
     
     enum Tab {
         case home, time, weather
@@ -23,8 +24,6 @@ struct FloatingTabBar: View {
                         .background(
                             ZStack {
                                 if selectedTab == tab {
-                                    
-                                    
                                     Capsule()
                                         .fill(Color(hex: "00E1FF").opacity(0.2))
                                         .matchedGeometryEffect(id: "TAB", in: namespace)
@@ -36,14 +35,14 @@ struct FloatingTabBar: View {
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
-        .background{
-            Color(.white)
-                .opacity(0.2)
-                .blur(radius: 25)
-        }
+        .background(Color(white: 0.15))
+        .opacity(0.7)
         .clipShape(Capsule())
         .frame(height: 40)
         .frame(maxWidth: 300)
+        .offset(y: isVisible ? 0 : 100) // Controls the slide up/down
+        .opacity(isVisible ? 1 : 0) // Controls the fade in/out
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isVisible)
     }
     
     @Namespace private var namespace
@@ -59,3 +58,4 @@ struct FloatingTabBar: View {
         }
     }
 }
+
