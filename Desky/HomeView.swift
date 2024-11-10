@@ -134,6 +134,7 @@ struct HomeView: View {
                         .overlay(Color.black.opacity(0.7))
                         .blur(radius: 50)
                         .edgesIgnoringSafeArea(.all)
+                        .ignoresSafeArea()
                 } else {
                     Color.black
                 }
@@ -165,8 +166,8 @@ struct HomeView: View {
                     Text("Connect With Spotify")
                         .foregroundColor(.white)
                         .fontWeight(.heavy)
-                        .padding(.bottom, 25)
-                        .font(.system(size: 32))
+                        .padding(.top, 15)
+                        .font(.system(size: 16))
                     
                     Text(isConnecting ? "Connecting..." : "Connect to Spotify")
                         .font(.title3)

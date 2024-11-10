@@ -21,6 +21,9 @@
 		5156B2FF2CD93AFD00007A02 /* URLExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5156B2FE2CD93AFD00007A02 /* URLExtensions.swift */; };
 		5156B3022CD93E7900007A02 /* SpotifyiOS in Frameworks */ = {isa = PBXBuildFile; productRef = 5156B3012CD93E7900007A02 /* SpotifyiOS */; };
 		5156B3042CD9492B00007A02 /* SpotifyAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5156B3032CD9492B00007A02 /* SpotifyAuth.swift */; };
+		516F7CD62CE0CEF600889233 /* WeatherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 516F7CD52CE0CEF600889233 /* WeatherView.swift */; };
+		516F7CD82CE0CF1000889233 /* TimeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 516F7CD72CE0CF1000889233 /* TimeView.swift */; };
+		516F7CDA2CE0CF2D00889233 /* FloatingTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 516F7CD92CE0CF2D00889233 /* FloatingTabBar.swift */; };
 		51DA7F602CDA748000FC9D98 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51DA7F5F2CDA748000FC9D98 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
@@ -40,6 +43,9 @@
 		5156B2FC2CD93A5400007A02 /* LoginStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginStatus.swift; sourceTree = "<group>"; };
 		5156B2FE2CD93AFD00007A02 /* URLExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = URLExtensions.swift; sourceTree = "<group>"; };
 		5156B3032CD9492B00007A02 /* SpotifyAuth.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SpotifyAuth.swift; sourceTree = "<group>"; };
+		516F7CD52CE0CEF600889233 /* WeatherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherView.swift; sourceTree = "<group>"; };
+		516F7CD72CE0CF1000889233 /* TimeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeView.swift; sourceTree = "<group>"; };
+		516F7CD92CE0CF2D00889233 /* FloatingTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingTabBar.swift; sourceTree = "<group>"; };
 		51DA7F5F2CDA748000FC9D98 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -80,6 +86,9 @@
 				5156B2FA2CD9393700007A02 /* HomeView.swift */,
 				5156B2E42CD936CF00007A02 /* ContentView.swift */,
 				514B750A2CDA2B9B0009B9C0 /* LoginView.swift */,
+				516F7CD52CE0CEF600889233 /* WeatherView.swift */,
+				516F7CD72CE0CF1000889233 /* TimeView.swift */,
+				516F7CD92CE0CF2D00889233 /* FloatingTabBar.swift */,
 				5156B3032CD9492B00007A02 /* SpotifyAuth.swift */,
 				5156B2EB2CD936D000007A02 /* Persistence.swift */,
 				51DA7F5F2CDA748000FC9D98 /* AppDelegate.swift */,
@@ -178,10 +187,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				51DA7F602CDA748000FC9D98 /* AppDelegate.swift in Sources */,
+				516F7CD82CE0CF1000889233 /* TimeView.swift in Sources */,
 				5156B3042CD9492B00007A02 /* SpotifyAuth.swift in Sources */,
+				516F7CDA2CE0CF2D00889233 /* FloatingTabBar.swift in Sources */,
 				5156B2F62CD9371900007A02 /* Constants.swift in Sources */,
 				5156B2FD2CD93A5400007A02 /* LoginStatus.swift in Sources */,
 				5156B2FB2CD9393700007A02 /* HomeView.swift in Sources */,
+				516F7CD62CE0CEF600889233 /* WeatherView.swift in Sources */,
 				5156B2EC2CD936D000007A02 /* Persistence.swift in Sources */,
 				5156B2FF2CD93AFD00007A02 /* URLExtensions.swift in Sources */,
 				5156B2E52CD936CF00007A02 /* ContentView.swift in Sources */,
