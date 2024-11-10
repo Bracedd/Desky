@@ -40,7 +40,7 @@ struct ContentView: View {
         }
         .ignoresSafeArea()
         .onAppear {
-            // Show tab bar initially
+
             showTabBar()
         }
     }
@@ -62,6 +62,6 @@ struct ContentView: View {
         }
         
         hideTabBarTask = task
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: task)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5, execute: task)
     }
 }

@@ -95,6 +95,17 @@ struct HomeView: View {
                     .foregroundColor(.white.opacity(0.8))
                     .lineLimit(1)
                 
+
+                    Button("Refresh") {
+                        spotifyAuth.setupAppRemote()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                            isConnecting = false
+                        }
+                    }
+
+
+
+                
                 // Progress Bar
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
@@ -157,7 +168,8 @@ struct HomeView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
                 isConnecting = false
             }
-        }) {
+        })
+        {
             ZStack {
                 Color(hex: "2b2b2b")
                     .edgesIgnoringSafeArea(.all)
@@ -190,13 +202,13 @@ struct HomeView: View {
                     
                     
                     Text(isConnecting ? "Connecting..." : "Connect to Spotify")
-                        .font(.title3)
+                        .font(.system(size: 18))
                         .fontWeight(.bold)
                         .foregroundColor(Color.white)
                         .padding()
                         .background(Color(hex: "6B6B6B"))
                         .cornerRadius(25)
-                        
+                    
                 }
             }
         }

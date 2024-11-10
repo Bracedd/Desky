@@ -14,12 +14,15 @@ struct TimeView: View {
         Text(formatDate(currentTime))
             .font(.system(size: 92))
             .fontWeight(.heavy)
+            .frame(width: 750, height: 50)
             .onAppear {
                 // Update the time every second
                 Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
                     currentTime = Date()
                 }
             }
+    
+        }
     }
     
     // Format the date into a time string
@@ -28,4 +31,4 @@ struct TimeView: View {
         formatter.timeStyle = .medium
         return formatter.string(from: date)
     }
-}
+
