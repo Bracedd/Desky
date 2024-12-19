@@ -2,9 +2,11 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var loginStatus: LoginStatus
+    @EnvironmentObject var spotifyAuth: SpotifyAuth
     @State private var selectedTab: FloatingTabBar.Tab = .home
     @State private var isTabBarVisible = false
     @State private var hideTabBarTask: DispatchWorkItem?
+    @State private var isSettingsPresented = false
     
     var body: some View {
         ZStack {
@@ -15,6 +17,7 @@ struct ContentView: View {
                 ZStack(alignment: .bottom) {
                     TabView(selection: $selectedTab) {
                         HomeView()
+                            .environmentObject(spotifyAuth)
                             .tag(FloatingTabBar.Tab.home)
                         
                         TimeView()
@@ -25,14 +28,22 @@ struct ContentView: View {
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
                     
-                    FloatingTabBar(selectedTab: $selectedTab, isVisible: $isTabBarVisible)
-                        .padding(.bottom, 15)
+                    FloatingTabBar(selectedTab: $selectedTab, isVisible: $isTabBarVisible, onSettingsTap: {
+                        withAnimation {
+                            isSettingsPresented = true
+                        }
+                    })
+                    .padding(.bottom, 15)
                 }
                 .transition(.opacity)
-                .contentShape(Rectangle()) // Makes the entire view tappable
+                .contentShape(Rectangle())
                 .onTapGesture {
                     showTabBar()
                 }
+                
+                SettingsDrawerView(isPresented: $isSettingsPresented)
+                    .environmentObject(spotifyAuth)
+                    .environmentObject(loginStatus)
             } else {
                 LoginView()
                     .transition(.opacity)
@@ -40,21 +51,17 @@ struct ContentView: View {
         }
         .ignoresSafeArea()
         .onAppear {
-
             showTabBar()
         }
     }
     
     private func showTabBar() {
-        // Cancel any existing hide task
         hideTabBarTask?.cancel()
         
-        // Show the tab bar
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             isTabBarVisible = true
         }
         
-        // Create new task to hide tab bar after 10 seconds
         let task = DispatchWorkItem {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                 isTabBarVisible = false
@@ -64,4 +71,9 @@ struct ContentView: View {
         hideTabBarTask = task
         DispatchQueue.main.asyncAfter(deadline: .now() + 5, execute: task)
     }
-}
+    
+    private func logout() {
+        loginStatus.isLoggedIn = false
+        selectedTab = .home
+    }
+}	
