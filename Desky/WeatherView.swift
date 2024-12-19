@@ -207,11 +207,7 @@ class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var forecast: [ForecastDay]?
     @Published var errorMessage: String?
     @Published var isLoading = false
-<<<<<<< HEAD
     private let apiKey = "e1648e7a34f3662e40461a54fef629d9"
-=======
-    private let apiKey = "HEHE_WEATHER_API" 
->>>>>>> main
     private let locationManager = CLLocationManager()
     private var debounceTimer: Timer?
     

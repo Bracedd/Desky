@@ -41,7 +41,7 @@ struct FloatingTabBar: View {
             .clipShape(Capsule())
             
             Button(action: onSettingsTap) {
-                Image(systemName: "gearshape.fill")
+                Image(systemName: "gear")
                     .font(.system(size: 20))
                     .foregroundColor(.white)
                     .frame(width: 40, height: 40)
