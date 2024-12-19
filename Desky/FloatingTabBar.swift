@@ -18,14 +18,14 @@ struct FloatingTabBar: View {
                 }) {
                     Text(title(for: tab))
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(selectedTab == tab ? Color(hex: "00E1FF") : .white)
+                        .foregroundColor(selectedTab == tab ? Color(hex: "9370DB") : .white)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 8)
                         .background(
                             ZStack {
                                 if selectedTab == tab {
                                     Capsule()
-                                        .fill(Color(hex: "00E1FF").opacity(0.2))
+                                        .fill(Color(hex: "A020F0").opacity(0.2))
                                         .matchedGeometryEffect(id: "TAB", in: namespace)
                                 }
                             }
