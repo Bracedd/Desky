@@ -62,7 +62,7 @@ struct SettingsDrawerView: View {
                                 }
                             }
                             
-                            Text("Version 1.0.0")
+                            Text("Version 0.1.0")
                                 .font(.footnote)
                                 .foregroundColor(Color(hex: "b6b5b5"))
                                 .padding(.top, 8)
