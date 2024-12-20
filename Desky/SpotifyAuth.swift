@@ -19,6 +19,9 @@ class SpotifyAuth: NSObject, ObservableObject {
             }
         }
     }
+    @Published var connectionState: ConnectionState = .disconnected
+    @Published var currentPlaybackState: SPTAppRemotePlayerState? // Added property
+    private var stateUpdateTimer: Timer?
     
     private var accessToken: String? {
         didSet {
@@ -100,15 +103,12 @@ class SpotifyAuth: NSObject, ObservableObject {
     }
     
     @objc private func handleAppDidBecomeActive() {
-        // Cancel any existing timers
         reconnectionTimer?.invalidate()
         connectionRetryTimer?.invalidate()
         
-        // Check token first
         checkAndRefreshTokenIfNeeded()
         
         if isAuthenticated && !appRemote.isConnected {
-            // Add a small delay to ensure proper state restoration
             isReconnecting = true
             reconnectionTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
                 print("🔄 Restoring connection after app switch...")
@@ -120,7 +120,6 @@ class SpotifyAuth: NSObject, ObservableObject {
     }
     
     @objc private func handleAppWillResignActive() {
-        // Cancel any pending reconnection
         reconnectionTimer?.invalidate()
         isReconnecting = false
         
@@ -168,6 +167,7 @@ class SpotifyAuth: NSObject, ObservableObject {
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             if let error = error {
                 print("❌ Network error: \(error.localizedDescription)")
+                self?.connectionState = .error(message: "Network error occurred")
                 return
             }
             
@@ -177,6 +177,7 @@ class SpotifyAuth: NSObject, ObservableObject {
             
             guard let data = data else {
                 print("❌ No data received")
+                self?.connectionState = .error(message: "No data received from server")
                 return
             }
             
@@ -188,22 +189,23 @@ class SpotifyAuth: NSObject, ObservableObject {
                             self?.accessToken = accessToken
                             self?.isAuthenticated = true
                             
-                            // Store refresh token
                             if let refreshToken = json["refresh_token"] as? String {
                                 self?.refreshToken = refreshToken
                             }
                             
-                            // Store expiration date
                             if let expiresIn = json["expires_in"] as? Double {
                                 self?.tokenExpirationDate = Date().addingTimeInterval(expiresIn)
                             }
                             
                             print("🎉 Authentication status updated to true")
+                            self?.connectionState = .connected
+                            self?.setupAppRemote()
                         }
                     } else if let error = json["error"] as? String {
                         print("❌ Token error: \(error)")
                         if let description = json["error_description"] as? String {
                             print("📝 Error description: \(description)")
+                            self?.connectionState = .error(message: description)
                         }
                     }
                 }
@@ -212,6 +214,7 @@ class SpotifyAuth: NSObject, ObservableObject {
                 if let dataString = String(data: data, encoding: .utf8) {
                     print("📝 Raw response data: \(dataString)")
                 }
+                self?.connectionState = .error(message: "Failed to parse server response")
             }
         }.resume()
     }
@@ -223,25 +226,32 @@ class SpotifyAuth: NSObject, ObservableObject {
     public func setupAppRemote() {
         guard let token = accessToken else {
             print("❌ No access token available for app remote setup")
+            connectionState = .error(message: "No access token available")
             return
         }
         
         print("🔑 Using token: \(token.prefix(10))...")
         
-        // Create a fresh configuration
         let configuration = SPTConfiguration(clientID: Constants.spotifyClientID, redirectURL: URL(string: Constants.redirectURI)!)
         
-        // Create a new app remote instance
         let newAppRemote = SPTAppRemote(configuration: configuration, logLevel: .debug)
         newAppRemote.delegate = self
         newAppRemote.connectionParameters.accessToken = token
         
-        // Store the new instance
         self.appRemote = newAppRemote
         
-        // Try to connect using connect() instead of authorizeAndPlayURI
-        print(" Attempting to connect to Spotify...")
+        connectionState = .connecting
+        print("🔄 Attempting to connect to Spotify...")
         appRemote.connect()
+        
+        // Retry connection if it fails
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            if !(self?.appRemote.isConnected ?? false) {
+                print("🔄 First connection attempt failed. Retrying...")
+                self?.connectionState = .retrying
+                self?.appRemote.connect()
+            }
+        }
     }
     
     public func requestPlayerState() {
@@ -254,13 +264,12 @@ class SpotifyAuth: NSObject, ObservableObject {
         appRemote.playerAPI?.getPlayerState { [weak self] result, error in
             if let error = error {
                 print("❌ Error getting player state: \(error)")
-                // Try again after a short delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    self?.requestPlayerState()
-                }
             } else if let playerState = result as? SPTAppRemotePlayerState {
                 print("✅ Received player state - Track: \(playerState.track.name)")
-                self?.updatePlayerState(playerState)
+                DispatchQueue.main.async {
+                    self?.currentPlaybackState = playerState
+                    self?.updatePlayerState(playerState)
+                }
             } else {
                 print("⚠️ No player state available")
             }
@@ -274,6 +283,7 @@ class SpotifyAuth: NSObject, ObservableObject {
         if !shouldAutoReconnect() {
             isConnected = false
         }
+        connectionState = .disconnected
     }
     
     private func shouldAutoReconnect() -> Bool {
@@ -287,12 +297,12 @@ class SpotifyAuth: NSObject, ObservableObject {
     deinit {
         reconnectionTimer?.invalidate()
         connectionRetryTimer?.invalidate()
+        stateUpdateTimer?.invalidate()
     }
     
     private func checkAndRefreshTokenIfNeeded() {
         guard let expirationDate = tokenExpirationDate else { return }
         
-        // Refresh if token expires in less than 5 minutes or has expired
         if Date().addingTimeInterval(5 * 60) > expirationDate {
             refreshAccessToken()
         }
@@ -317,6 +327,7 @@ class SpotifyAuth: NSObject, ObservableObject {
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             if let error = error {
                 print("❌ Token refresh error: \(error.localizedDescription)")
+                self?.connectionState = .error(message: "Failed to refresh token")
                 return
             }
             
@@ -331,13 +342,13 @@ class SpotifyAuth: NSObject, ObservableObject {
                             if let expiresIn = json["expires_in"] as? Double {
                                 self?.tokenExpirationDate = Date().addingTimeInterval(expiresIn)
                             }
-                            // Reconnect with new token
                             self?.setupAppRemote()
                         }
                     }
                 }
             } catch {
                 print("❌ JSON parsing error during token refresh: \(error)")
+                self?.connectionState = .error(message: "Failed to parse token refresh response")
             }
         }.resume()
     }
@@ -347,6 +358,7 @@ class SpotifyAuth: NSObject, ObservableObject {
             print("❌ Max connection retries reached")
             DispatchQueue.main.async { [weak self] in
                 self?.isConnected = false
+                self?.connectionState = .error(message: "Failed to connect after multiple attempts")
                 NotificationCenter.default.post(name: NSNotification.Name("ShowSpotifyConnectionError"), object: nil)
             }
             return
@@ -357,7 +369,6 @@ class SpotifyAuth: NSObject, ObservableObject {
         
         setupAppRemote()
         
-        // Set up retry timer
         connectionRetryTimer?.invalidate()
         connectionRetryTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
             if !(self?.appRemote.isConnected ?? false) {
@@ -367,19 +378,17 @@ class SpotifyAuth: NSObject, ObservableObject {
     }
     
     func logout() {
-        // Disconnect from Spotify
         if appRemote.isConnected {
             appRemote.disconnect()
         }
         
-        // Clear all stored tokens and states
         accessToken = nil
         refreshToken = nil
         tokenExpirationDate = nil
         isAuthenticated = false
         isConnected = false
+        connectionState = .disconnected
         
-        // Clear UserDefaults
         UserDefaults.standard.removeObject(forKey: "spotifyAccessToken")
         UserDefaults.standard.removeObject(forKey: "spotifyRefreshToken")
         UserDefaults.standard.removeObject(forKey: "spotifyTokenExpiration")
@@ -387,6 +396,19 @@ class SpotifyAuth: NSObject, ObservableObject {
         UserDefaults.standard.removeObject(forKey: "spotifyConnected")
         UserDefaults.standard.removeObject(forKey: "lastSpotifyConnection")
         UserDefaults.standard.synchronize()
+    }
+    
+    // Added method to start periodic updates
+    func startPlaybackStateUpdates() {
+        stateUpdateTimer?.invalidate()
+        stateUpdateTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            self?.requestPlayerState()
+        }
+    }
+    
+    func stopPlaybackStateUpdates() {
+        stateUpdateTimer?.invalidate()
+        stateUpdateTimer = nil
     }
 }
 
@@ -398,13 +420,10 @@ extension SpotifyAuth: SPTAppRemoteDelegate {
         if let error = error {
             print("Error details: \(error.localizedDescription)")
             
-            // Only try reconnecting if we're not already in the process
             if !isReconnecting {
-                // Try alternate connection method
                 print("🔄 Trying alternate connection method...")
                 appRemote.authorizeAndPlayURI("")
                 
-                // Set up failure timer
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
                     if !(self?.appRemote.isConnected ?? false) {
                         self?.attemptConnection()
@@ -412,28 +431,27 @@ extension SpotifyAuth: SPTAppRemoteDelegate {
                 }
             }
         }
+        connectionState = .error(message: "Failed to connect to Spotify")
     }
     
     func appRemoteDidEstablishConnection(_ appRemote: SpotifyiOS.SPTAppRemote) {
         print("✅ Connected to Spotify")
         
-        // Reset connection retry count on successful connection
         connectionRetryCount = 0
         connectionRetryTimer?.invalidate()
         
         DispatchQueue.main.async { [weak self] in
             self?.isConnected = true
+            self?.connectionState = .connected
+            self?.startPlaybackStateUpdates()
         }
         
-        // Set up player API delegate and immediately request state
         appRemote.playerAPI?.delegate = self
         requestPlayerState()
         
-        // Then subscribe to future updates
         appRemote.playerAPI?.subscribe { [weak self] result, error in
             if let error = error {
                 print("❌ Error subscribing to player state: \(error)")
-                // Try to request state even if subscription fails
                 self?.requestPlayerState()
             } else {
                 print("✅ Successfully subscribed to player state updates")
@@ -444,6 +462,7 @@ extension SpotifyAuth: SPTAppRemoteDelegate {
     func appRemote(_ appRemote: SpotifyiOS.SPTAppRemote, didDisconnectWithError error: Error?) {
         print("❌ Disconnected from Spotify")
         isConnected = false
+        connectionState = .disconnected
         if let error = error {
             print("Error: \(error)")
         }
@@ -454,17 +473,13 @@ extension SpotifyAuth: SPTAppRemotePlayerStateDelegate {
     func playerStateDidChange(_ playerState: SPTAppRemotePlayerState) {
         print("🎵 Player state changed automatically")
         updatePlayerState(playerState)
-        
-        
     }
     
-    private func updatePlayerState(_ playerState: SPTAppRemotePlayerState) {
+    private func updatePlayerState(_ playerState: SPTAppRemotePlayerState) { // Updated method
         print("🎵 Updating player state for track: \(playerState.track.name)")
         
-        // Create image URL from identifier with better formatting
         let imageURL: URL? = {
             let identifier = playerState.track.imageIdentifier
-            // Remove any potential spotify: prefix and image: prefix
             let cleanIdentifier = identifier
                 .replacingOccurrences(of: "spotify:", with: "")
                 .replacingOccurrences(of: "image:", with: "")
@@ -479,6 +494,7 @@ extension SpotifyAuth: SPTAppRemotePlayerStateDelegate {
         }
         
         DispatchQueue.main.async {
+            self.currentPlaybackState = playerState // Update currentPlaybackState
             self.currentTrack = (
                 title: playerState.track.name,
                 artist: playerState.track.artist.name,
@@ -486,7 +502,16 @@ extension SpotifyAuth: SPTAppRemotePlayerStateDelegate {
                 imageURL: imageURL
             )
             print("✅ Updated current track: \(playerState.track.name)")
-            
         }
     }
-} 
+}
+
+enum ConnectionState {
+    case disconnected
+    case connecting
+    case connected
+    case retrying
+    case error(message: String)
+}
+
+
