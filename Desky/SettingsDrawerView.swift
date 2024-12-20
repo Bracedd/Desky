@@ -5,8 +5,8 @@ struct SettingsDrawerView: View {
     @EnvironmentObject var loginStatus: LoginStatus
     @Binding var isPresented: Bool
     @State private var showingLogoutAlert = false
-    @AppStorage("isDarkMode") private var isDarkMode = true
     @AppStorage("autoConnectSpotify") private var autoConnectSpotify = true
+    @AppStorage("use24HourFormat") private var use24HourFormat = true
     @State private var dragOffset: CGFloat = 0
     @State private var opacity: Double = 0
     
@@ -14,7 +14,7 @@ struct SettingsDrawerView: View {
         GeometryReader { geometry in
             ZStack {
                 // Backdrop
-                Color.black.opacity(0.5)
+                Color.black.opacity(0.7)
                     .ignoresSafeArea()
                     .opacity(opacity)
                     .onTapGesture {
@@ -26,27 +26,28 @@ struct SettingsDrawerView: View {
                     // Header
                     HStack {
                         Text("Settings")
-                            .font(.title2.bold())
+                            .font(.title3.bold())
+                            .foregroundColor(.white)
                         Spacer()
                         Button {
                             dismissDrawer()
                         } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title2)
-                                .foregroundStyle(.secondary)
+                            Image(systemName: "xmark")
+                                .font(.title3)
+                                .foregroundColor(Color(hex: "b6b5b5"))
                         }
                     }
                     .padding()
-                    .background(Color(UIColor.secondarySystemBackground))
+                    .background(Color(hex: "2b2b2b"))
                     
                     ScrollView {
-                        VStack(spacing: 20) {
+                        VStack(spacing: 16) {
                             settingsGroup {
-                                toggleRow(title: "Dark Mode", icon: "moon.fill", isOn: $isDarkMode)
+                                toggleRow(title: "Auto-connect Spotify", icon: "music.note", isOn: $autoConnectSpotify)
                             }
                             
                             settingsGroup {
-                                toggleRow(title: "Auto-connect Spotify", icon: "music.note", isOn: $autoConnectSpotify)
+                                toggleRow(title: "24-Hour Format", icon: "clock", isOn: $use24HourFormat)
                             }
                             
                             settingsGroup {
@@ -56,30 +57,23 @@ struct SettingsDrawerView: View {
                                     HStack {
                                         Label("Logout from Spotify", systemImage: "arrow.right.circle")
                                         Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.footnote)
-                                            .foregroundStyle(.secondary)
                                     }
-                                    .foregroundStyle(.red)
+                                    .foregroundStyle(Color(hex: "b386da"))
                                 }
                             }
                             
-                            settingsGroup {
-                                HStack {
-                                    Label("Version", systemImage: "info.circle")
-                                    Spacer()
-                                    Text("1.0.0")
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
+                            Text("Version 1.0.0")
+                                .font(.footnote)
+                                .foregroundColor(Color(hex: "b6b5b5"))
+                                .padding(.top, 8)
                         }
                         .padding()
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(UIColor.systemBackground))
-                .mask(RoundedRectangle(cornerRadius: 15, style: .continuous))
-                .shadow(color: .black.opacity(0.15), radius: 10, x: -5, y: 0)
+                .frame(width: min(400, geometry.size.width * 0.8))
+                .background(Color(hex: "2b2b2b"))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .shadow(color: .black.opacity(0.3), radius: 20, x: -10, y: 0)
                 .offset(x: dragOffset)
                 .offset(x: isPresented ? 0 : geometry.size.width)
                 .gesture(
@@ -130,16 +124,23 @@ struct SettingsDrawerView: View {
             content()
         }
         .padding()
-        .background(Color(UIColor.secondarySystemBackground))
-        .cornerRadius(10)
+        .background(Color(hex: "6b6b6b").opacity(0.2))
+        .cornerRadius(15)
     }
     
     private func toggleRow(title: String, icon: String, isOn: Binding<Bool>) -> some View {
         HStack {
-            Label(title, systemImage: icon)
+            Label {
+                Text(title)
+                    .foregroundColor(.white)
+            } icon: {
+                Image(systemName: icon)
+                    .foregroundColor(Color(hex: "b386da"))
+            }
             Spacer()
             Toggle("", isOn: isOn)
                 .labelsHidden()
+                .toggleStyle(SwitchToggleStyle(tint: Color(hex: "b386da")))
         }
     }
     
