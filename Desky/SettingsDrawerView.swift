@@ -58,7 +58,7 @@ struct SettingsDrawerView: View {
                                         Label("Logout from Spotify", systemImage: "arrow.right.circle")
                                         Spacer()
                                     }
-                                    .foregroundStyle(Color(hex: "b386da"))
+                                    .foregroundStyle(Color(hex: "ff0000"))
                                 }
                             }
                             

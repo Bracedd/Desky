@@ -17,7 +17,6 @@ struct ContentView: View {
                 ZStack(alignment: .bottom) {
                     TabView(selection: $selectedTab) {
                         HomeView()
-                            .environmentObject(spotifyAuth)
                             .tag(FloatingTabBar.Tab.home)
                         
                         TimeView()
@@ -42,8 +41,6 @@ struct ContentView: View {
                 }
                 
                 SettingsDrawerView(isPresented: $isSettingsPresented)
-                    .environmentObject(spotifyAuth)
-                    .environmentObject(loginStatus)
             } else {
                 LoginView()
                     .transition(.opacity)
@@ -71,9 +68,6 @@ struct ContentView: View {
         hideTabBarTask = task
         DispatchQueue.main.asyncAfter(deadline: .now() + 5, execute: task)
     }
-    
-    private func logout() {
-        loginStatus.isLoggedIn = false
-        selectedTab = .home
-    }
-}	
+}
+
+

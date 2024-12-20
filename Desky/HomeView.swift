@@ -2,12 +2,13 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var loginStatus: LoginStatus
-    @StateObject private var spotifyAuth = SpotifyAuth()
+    @EnvironmentObject var spotifyAuth: SpotifyAuth
     @State private var showSpotifyAlert = false
     @State private var showConnectionError = false
     @State private var isConnecting = false
     @State private var progress: Double = 0.0
     @State private var isTrackChanged = false
+    @State private var progressTimer: Timer?
     
     var body: some View {
         GeometryReader { geometry in
@@ -16,12 +17,12 @@ struct HomeView: View {
                 
                 if let currentTrack = spotifyAuth.currentTrack {
                     playerView(for: currentTrack, in: geometry)
-                        .opacity(isTrackChanged ? 0.5 : 1.0) // Adjust opacity here
+                        .opacity(isTrackChanged ? 0.5 : 1.0)
                         .animation(.easeInOut(duration: 0.5), value: isTrackChanged)
                         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TrackDidChange"))) { _ in
-                            isTrackChanged.toggle() // Toggle to trigger animation
+                            isTrackChanged.toggle()
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                isTrackChanged.toggle() // Reset after animation completes
+                                isTrackChanged.toggle()
                             }
                         }
                 } else {
@@ -30,16 +31,22 @@ struct HomeView: View {
             }
         }
         .onDisappear {
+            stopProgressTimer()
             spotifyAuth.disconnect()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowSpotifyConnectionError"))) { _ in
             showConnectionError = true
         }
+        .alert("Connection Error", isPresented: $showConnectionError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Failed to connect to Spotify. Please try again.")
+        }
     }
     
     private func playerView(for track: (title: String, artist: String, isPlaying: Bool, imageURL: URL?), in geometry: GeometryProxy) -> some View {
         HStack(spacing: 20) {
-            // Left side: Album Artwork with animation on opacity
+            // Album Artwork
             if let imageURL = track.imageURL {
                 AsyncImage(url: imageURL) { phase in
                     switch phase {
@@ -53,7 +60,6 @@ struct HomeView: View {
                             .frame(width: geometry.size.height * 0.7, height: geometry.size.height * 0.7)
                             .clipShape(RoundedRectangle(cornerRadius: 20))
                             .shadow(color: .black, radius: 50)
-                            .padding(.bottom, geometry.size.height * 0.015      )
                     case .failure(_):
                         Image(systemName: "music.note")
                             .resizable()
@@ -64,7 +70,7 @@ struct HomeView: View {
                         EmptyView()
                     }
                 }
-                .opacity(isTrackChanged ? 0.5 : 1.0) // Add opacity animation here as well
+                .opacity(isTrackChanged ? 0.5 : 1.0)
                 .animation(.easeInOut(duration: 0.5), value: isTrackChanged)
             } else {
                 Image(systemName: "music.note")
@@ -76,10 +82,9 @@ struct HomeView: View {
                     .animation(.easeInOut(duration: 0.5), value: isTrackChanged)
             }
             
-            // Right side: Track Info and Progress
+            // Track Info and Progress
             VStack(alignment: .leading, spacing: 10) {
                 Spacer()
-                
                 
                 Text(track.title)
                     .font(.title)
@@ -87,24 +92,18 @@ struct HomeView: View {
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
-
-                
-                
                 Text(track.artist)
                     .font(.title3)
                     .foregroundColor(.white.opacity(0.8))
                     .lineLimit(1)
                 
-
-                    Button("Refresh") {
-                        spotifyAuth.setupAppRemote()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
-                            isConnecting = false
-                        }
-                    }
-
-
-
+                Button(action: {
+                    spotifyAuth.setupAppRemote()
+                }) {
+                    Text("Refresh")
+                        .foregroundColor(Color(hex: "b386da"))
+                        .padding(.vertical, 8)
+                }
                 
                 // Progress Bar
                 GeometryReader { geo in
@@ -123,9 +122,9 @@ struct HomeView: View {
                 .frame(height: 4)
                 
                 HStack {
-                    Text(formatTime(Int(progress * 3 * 60))) // Assuming 3 minutes max duration
+                    Text(formatTime(Int(progress * 3 * 60)))
                     Spacer()
-                    Text(formatTime(3 * 60)) // 3 minutes in seconds
+                    Text(formatTime(3 * 60))
                 }
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.6))
@@ -152,11 +151,9 @@ struct HomeView: View {
             }
         )
         .onAppear {
-            // Start updating progress
             startProgressTimer()
         }
         .onDisappear {
-            // Stop updating progress
             stopProgressTimer()
         }
     }
@@ -168,51 +165,43 @@ struct HomeView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
                 isConnecting = false
             }
-        })
-        {
+        }) {
             ZStack {
                 Color(hex: "2b2b2b")
                     .edgesIgnoringSafeArea(.all)
                 
-                VStack {
+                VStack(spacing: 20) {
                     Text("Connect With Spotify")
                         .foregroundColor(.white)
                         .fontWeight(.bold)
-                        .padding(.top, 15)
                         .font(.system(size: 28))
                     
-                    VStack{
+                    VStack(spacing: 10) {
                         Text("Steps to connect")
                             .fontWeight(.bold)
                         Text("1. Make Sure Spotify is downloaded and signed in")
-                            .fontWeight(.bold)
                         Text("2. Click connect and let it authorize")
-                            .fontWeight(.bold)
                         Text("3. You're ready to go!")
-                            .fontWeight(.bold)
                     }
                     .font(.system(size: 12))
                     .foregroundColor(Color(hex: "B6B5B5"))
                     .multilineTextAlignment(.center)
-                    .padding(.vertical, 15)
                     
                     Text("*Require Spotify Premium For Playback Controls")
                         .fontWeight(.bold)
                         .foregroundColor(Color(hex: "B386DA"))
                     
-                    
                     Text(isConnecting ? "Connecting..." : "Connect to Spotify")
                         .font(.system(size: 18))
                         .fontWeight(.bold)
-                        .foregroundColor(Color.white)
+                        .foregroundColor(.white)
                         .padding()
                         .background(Color(hex: "6B6B6B"))
                         .cornerRadius(25)
-                    
                 }
+                .padding()
             }
         }
-
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .disabled(isConnecting)
     }
@@ -224,31 +213,30 @@ struct HomeView: View {
     }
     
     private func startProgressTimer() {
-        // Reset progress
+        stopProgressTimer() // Stop existing timer if any
         progress = 0.0
         
-        // Start a timer to update progress
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+        progressTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
             if self.progress < 1.0 {
-                self.progress += 1.0 / (30.0 * 60.0) // Assuming 30 minutes max duration
+                self.progress += 1.0 / (30.0 * 60.0)
             } else {
-                timer.invalidate()
+                self.stopProgressTimer()
             }
         }
     }
     
     private func stopProgressTimer() {
-        // This method would be called to stop the progress timer if needed
+        progressTimer?.invalidate()
+        progressTimer = nil
     }
 }
-
-
 
 struct HomeView_Previews: PreviewProvider {
     static var previews: some View {
         HomeView()
             .environmentObject(LoginStatus())
+            .environmentObject(SpotifyAuth())
             .previewInterfaceOrientation(.landscapeLeft)
     }
 }
-    
+
